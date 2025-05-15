@@ -1,0 +1,296 @@
+import { useState, useEffect, useRef } from 'react'
+
+function normalizeString(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase()
+}
+
+function App() {
+  const [palavra, setPalavra] = useState()
+  const [tentativa, setTentativa] = useState(['', '', '', '', ''])
+  const [erro, setErro] = useState(false)
+  const [tentativasAnteriores, setTentativasAnteriores] = useState([])
+  const [tentativasFalta, setTentativasFalta] = useState([0, 1, 2, 3, 4])
+  const [listaPalavras, setListaPalavras] = useState([])
+  const [jogoBloqueado, setJogoBloqueado] = useState(false)
+  const [vencedor, setVencedor] = useState(false)
+  const [estatisticas, setEstatisticas] = useState({
+    total: 0,
+    vitorias: 0,
+    fase: {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0
+    },
+    derrotas: 0
+  })
+
+  const inputRefs = useRef([])
+
+  function getPalavraDoDia(lista) {
+    const agora = new Date()
+    const ano = agora.getFullYear()
+    const mes = agora.getMonth() + 1
+    const dia = agora.getDate()
+    const hora = agora.getHours()
+    const diaBase = hora < 12 ? dia : dia + 1
+    const seed = parseInt(`${ano}${String(mes).padStart(2, '0')}${String(diaBase).padStart(2, '0')}`)
+    const index = seed % lista.length
+    return lista[index].trim()
+  }
+
+  function handleChange(index, value) {
+    const nova = [...tentativa]
+    nova[index] = value.toLowerCase().slice(0, 1)
+    setTentativa(nova)
+    if (value.length === 1 && index < tentativa.length - 1) {
+      inputRefs.current[index + 1]?.focus()
+    }
+  }
+
+  function handleKeyDown(e, index) {
+    if (e.key === 'Backspace') {
+      if (tentativa[index] === '' && index > 0) {
+        inputRefs.current[index - 1]?.focus()
+      }
+    } else if (e.key === 'Enter') {
+      palavraExiste(tentativa)
+    }
+  }
+
+  useEffect(() => {
+    fetch('/arquivo.txt')
+      .then(res => res.text())
+      .then(texto => {
+        const nomes = texto.split('\n').map(n => n.trim()).filter(Boolean)
+        const palavraDoDia = getPalavraDoDia(nomes)
+
+        setListaPalavras(nomes)
+        setPalavra(palavraDoDia)
+
+        if (localStorage.getItem('estatisticasJogo')) {
+          const statistc = localStorage.getItem('estatisticasJogo')
+          if (statistc) {
+            const { total, vitorias, fase, derrotas } = JSON.parse(statistc)
+            console.log(total, vitorias, fase, derrotas)
+            setEstatisticas({
+              total: total,
+              vitorias: vitorias,
+              fase: fase,
+              derrotas: derrotas
+            })
+            console.log(estatisticas)
+          }
+        }
+
+        const salvo = localStorage.getItem('jogoDoDia')
+        if (salvo) {
+          const { data, tentativas, bloqueado, venceu } = JSON.parse(salvo)
+          const hoje = new Date().toDateString()
+          if (data === hoje) {
+            setTentativasAnteriores(tentativas || [])
+            setJogoBloqueado(bloqueado)
+            setVencedor(venceu)
+
+            const tentativasFeitas = tentativas ? tentativas.length : 0
+            const maxTentativas = 5
+            const restantes = maxTentativas - tentativasFeitas
+            setTentativasFalta(restantes > 0 ? Array.from({ length: restantes }, (_, i) => i) : [])
+
+            if (bloqueado) {
+              setTentativa(['', '', '', '', ''])
+            }
+          } else {
+            setTentativasAnteriores([])
+            setTentativasFalta([0, 1, 2, 3, 4])
+            setJogoBloqueado(false)
+            setVencedor(false)
+            setTentativa(['', '', '', '', ''])
+          }
+        } else {
+          setTentativasAnteriores([])
+          setTentativasFalta([0, 1, 2, 3, 4])
+          setJogoBloqueado(false)
+          setVencedor(false)
+          setTentativa(['', '', '', '', ''])
+        }
+      })
+  }, [])
+
+  function salvarEstado(tentativas, bloqueado, venceu) {
+    localStorage.setItem('jogoDoDia', JSON.stringify({
+      data: new Date().toDateString(),
+      tentativas,
+      bloqueado,
+      venceu,
+    }))
+  }
+
+  function palavraExiste(palavraArray) {
+    const tentativaNormalized = normalizeString(palavraArray.join(''))
+    const dataNormalized = listaPalavras.map(n => normalizeString(n))
+    if (dataNormalized.includes(tentativaNormalized)) {
+      setErro(false)
+      verificar()
+    } else {
+      setErro('Palavra não existe')
+    }
+  }
+
+  function verificar() {
+    const resultado = tentativa.map((letra, i) =>
+      letra === palavra[i] ? 'c' :
+        palavra.includes(letra) ? 't' : 'e'
+    )
+
+    const novaTentativasAnteriores = [
+      ...tentativasAnteriores,
+      { letras: [...tentativa], resultado }
+    ]
+
+    const tentativaFinal = tentativa.join('')
+    const venceu = tentativaFinal === palavra
+
+    if (venceu) {
+      const tentativasFeitas = 5 - tentativasFalta.length
+      const faseIndex = Math.min(Math.max(tentativasFeitas, 1), 5)
+
+      const novaEstatisticas = {
+        total: estatisticas.total + 1,
+        vitorias: estatisticas.vitorias + 1,
+        fase: {
+          ...estatisticas.fase,
+          [faseIndex]: estatisticas.fase[faseIndex] + 1
+        },
+        derrotas: estatisticas.derrotas
+      }
+      setEstatisticas(novaEstatisticas)
+      localStorage.setItem('estatisticasJogo', JSON.stringify(novaEstatisticas))
+
+      setVencedor(true)
+      setJogoBloqueado(true)
+      setTentativasFalta([])
+      setTentativasAnteriores(novaTentativasAnteriores)
+      salvarEstado(novaTentativasAnteriores, true, true)
+      return
+    }
+
+    if (tentativasFalta.length === 1) {
+      setJogoBloqueado(true)
+      setTentativasFalta([])
+      setTentativasAnteriores(novaTentativasAnteriores)
+      salvarEstado(novaTentativasAnteriores, true, false)
+      return
+    }
+
+    const novaTentativasFalta = [...tentativasFalta]
+    novaTentativasFalta.pop()
+
+    setTentativasFalta(novaTentativasFalta)
+    setTentativasAnteriores(novaTentativasAnteriores)
+    setTentativa(['', '', '', '', ''])
+    inputRefs.current[0]?.focus()
+    salvarEstado(novaTentativasAnteriores, false, false)
+  }
+  console.log(estatisticas)
+
+  function renderInput(letras, resultado, keyPrefix = '') {
+    return (
+      <div key={keyPrefix} className="flex gap-2">
+        {letras.map((letra, i) => (
+          <input
+            key={keyPrefix + i}
+            type="text"
+            value={letra.toUpperCase()}
+            readOnly
+            className={
+              'w-16 p-2 aspect-square border rounded-xl text-white text-center text-4xl font-bold ' +
+              (resultado[i] === 'c'
+                ? 'bg-green-500'
+                : resultado[i] === 't'
+                  ? 'bg-yellow-400'
+                  : 'bg-red-500')
+            }
+          />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className='h-screen bg-gray-700 flex flex-col gap-2 justify-center items-center px-4'>
+
+      {jogoBloqueado && !vencedor && palavra && (
+        <p className="text-red-500 font-bold text-center text-lg max-w-md px-2">
+          Você perdeu! A palavra do dia era: <span className="underline">{palavra.toUpperCase()}</span>
+        </p>
+      )}
+
+      {erro && <p className="text-red-400 font-semibold">{erro}</p>}
+
+      <div className="flex flex-col gap-2">
+        {tentativasAnteriores.length > 0 && tentativasAnteriores.map((tent, i) =>
+          renderInput(tent.letras, tent.resultado, `old-${i}-`)
+        )}
+      </div>
+
+      {!jogoBloqueado && (
+        <div className="flex gap-2">
+          {tentativa.map((letra, i) => (
+            <input
+              key={i}
+              type="text"
+              value={letra.toUpperCase()}
+              onChange={(e) => handleChange(i, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, i)}
+              maxLength={1}
+              className="w-16 p-2 aspect-square border rounded-xl text-white text-center text-4xl font-bold bg-white/10"
+              ref={el => inputRefs.current[i] = el}
+            />
+          ))}
+        </div>
+      )}
+
+      {tentativasFalta.length > 0 && (
+        <div className="flex flex-col gap-2 w-full items-center">
+          {tentativasFalta.slice(jogoBloqueado ? 0 : 1).map((i) => (
+            <div key={i} className="flex gap-2 opacity-50 pointer-events-none">
+              {[...Array(5)].map((_, idx) => (
+                <input
+                  key={idx}
+                  type="text"
+                  readOnly
+                  className="w-16 p-2 aspect-square border rounded-xl text-white text-center text-4xl font-bold bg-white/10"
+                  value=""
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {jogoBloqueado && (
+        <p className="text-red-400 font-bold mt-4 text-center max-w-md px-2">
+          {vencedor
+            ? 'Parabéns! Você acertou a palavra do dia! Volte amanhã para uma nova.'
+            : 'Você esgotou as tentativas de hoje. Volte amanhã!'}
+        </p>
+      )}
+
+      {!jogoBloqueado && (
+        <button
+          onClick={() => palavraExiste(tentativa)}
+          disabled={tentativa.some(l => l === '')}
+          className={`px-6 py-2 rounded-xl font-bold mt-4 w-full max-w-md
+          ${tentativa.some(l => l === '') ? 'bg-gray-500 cursor-not-allowed' : 'bg-cyan-400 text-black'}
+        `}
+        >
+          Enviar
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default App
