@@ -42,7 +42,7 @@ function App() {
     const seed = parseInt(
       `${ano}${String(mes).padStart(2, "0")}${String(diaBase).padStart(2, "0")}`
     );
-    const index = seed % lista.length;
+    const index = (seed * dia) % lista.length;
     return lista[index].trim();
   }
 
@@ -56,21 +56,20 @@ function App() {
   }
 
   function handleKeyDown(e, index) {
-  if (e.key === "Backspace") {
-    if (tentativa[index] === "" && index > 0) {
+    if (e.key === "Backspace") {
+      if (tentativa[index] === "" && index > 0) {
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === "Enter") {
+      palavraExiste(tentativa);
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
       inputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < tentativa.length - 1) {
+      e.preventDefault();
+      inputRefs.current[index + 1]?.focus();
     }
-  } else if (e.key === "Enter") {
-    palavraExiste(tentativa);
-  } else if (e.key === "ArrowLeft" && index > 0) {
-    e.preventDefault();
-    inputRefs.current[index - 1]?.focus();
-  } else if (e.key === "ArrowRight" && index < tentativa.length - 1) {
-    e.preventDefault();
-    inputRefs.current[index + 1]?.focus();
   }
-}
-
 
   useEffect(() => {
     fetch("/arquivo.txt")
@@ -169,8 +168,8 @@ function App() {
 
     for (let i = 0; i < tentArr.length; i++) {
       if (tentArr[i] === preArr[i]) {
-        rsp[i] = "c";   
-        preArr[i] = ""; 
+        rsp[i] = "c";
+        preArr[i] = "";
       }
     }
 
@@ -184,18 +183,18 @@ function App() {
     for (let i = 0; i < tentArr.length; i++) {
       const letra = tentArr[i];
 
-      if (rsp[i] !== "") continue;  
+      if (rsp[i] !== "") continue;
 
       if (dic[letra] && dic[letra] > 0) {
-        rsp[i] = "t";  
-        dic[letra]--;   
-        if (dic[letra] === 0) delete dic[letra];  
+        rsp[i] = "t";
+        dic[letra]--;
+        if (dic[letra] === 0) delete dic[letra];
       } else {
-        rsp[i] = "e";  
+        rsp[i] = "e";
       }
     }
-    
-    const resultado = rsp; 
+
+    const resultado = rsp;
 
     const novaTentativasAnteriores = [
       ...tentativasAnteriores,

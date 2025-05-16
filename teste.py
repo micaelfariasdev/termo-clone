@@ -1,31 +1,16 @@
-pre = 'abalo'
+from datetime import datetime, timedelta
 
-tent = str(input('qual palavra '))
+agora = datetime.now()
+ano = agora.year
+mes = agora.month
+dia = agora + timedelta(days=1)
+dia = dia.day
+hora = agora.hour
 
-rsp= ['','','','','']
-pre = list(pre)
-tent = list(tent)
-for i, v in enumerate(tent):
-    if pre[i] == v:
-        rsp[i] = 'c'
-        pre[i] = ''
+dia_base = dia if hora < 12 else dia + 1
+seed_str = f"{ano}{ano}{ano}{dia_base:01d}{ano}{dia_base:02d}{mes:02d}{dia_base:01d}"
+seed = int(seed_str) * dia
+index = seed % 5000
 
-dic = {}
-for i, v in enumerate(tent):
-    dic[v] = pre.count(v)
-
-for i, v in enumerate(tent):
-    if rsp[i] != '':
-        pass
-    elif v in pre and rsp[i] != 't' and v in dic.keys():
-        rsp[i] = 't'
-        dic[v] -= 1
-        if dic[v] == 0 :
-            del dic[v]
-    else:
-        rsp[i] = 'e'
-
-
-
-
-
+print(seed_str)
+print(index)
