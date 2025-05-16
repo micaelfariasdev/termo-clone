@@ -1,16 +1,50 @@
-from datetime import datetime, timedelta
+from pathlib import Path
+import requests
+import json
+import unicodedata
+import unicodedata
 
-agora = datetime.now()
-ano = agora.year
-mes = agora.month
-dia = agora + timedelta(days=1)
-dia = dia.day
-hora = agora.hour
+def remover_acentos(texto):
+    resultado = ''
+    for caractere in texto:
+        if caractere == 'ç' or caractere == 'Ç':
+            resultado += caractere
+        else:
+            nfkd = unicodedata.normalize('NFKD', caractere)
+            sem_acento = ''.join([c for c in nfkd if not unicodedata.combining(c)])
+            resultado += sem_acento
+    return resultado
 
-dia_base = dia if hora < 12 else dia + 1
-seed_str = f"{ano}{ano}{ano}{dia_base:01d}{ano}{dia_base:02d}{mes:02d}{dia_base:01d}"
-seed = int(seed_str) * dia
-index = seed % 5000
 
-print(seed_str)
-print(index)
+
+def nomes():
+    url = 'https://www.ime.usp.br/~pf/dicios/br-utf8.txt'
+   
+    resposta = requests.get(url)
+    resposta = resposta.text.split('\n')
+   
+
+    arquivo = Path('public/arquivo.txt')
+
+    if not arquivo.exists():
+        with open(arquivo, 'w', encoding='utf-8') as f:
+            for i in resposta[:-1]:
+                if i[0] == '':
+                    pass
+                if i[0].isupper():
+                    pass
+                if len(i) == 5:
+                     f.write(f'{i}\n')
+
+    with open('arquivo.txt', 'a', encoding='utf-8') as f:
+        for i in resposta[:-1]:
+                if i[0] == '':
+                    pass
+                if i[0].isupper():
+                    pass
+                if len(i) == 5:
+                     f.write(f'{i}\n')
+
+nomes()
+
+

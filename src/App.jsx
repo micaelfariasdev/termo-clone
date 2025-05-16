@@ -7,6 +7,20 @@ function normalizeString(str) {
     .toLowerCase();
 }
 
+function removerAcentos(texto) {
+  let resultado = '';
+  for (let caractere of texto) {
+    if (caractere === 'ç' || caractere === 'Ç') {
+      resultado += caractere;
+    } else {
+      const normalizado = caractere.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      resultado += normalizado;
+    }
+  }
+  return resultado;
+}
+
+
 function App() {
   const [showBar, setShowBar] = useState(false);
   const [palavra, setPalavra] = useState();
@@ -100,8 +114,15 @@ function App() {
         const salvo = localStorage.getItem("jogoDoDia");
         if (salvo) {
           const { data, tentativas, bloqueado, venceu } = JSON.parse(salvo);
-          const hoje = new Date().toDateString();
-          if (data === hoje) {
+          const hoje = new Date();
+          const dataGet = new Date(data)
+          const reset = new Date()
+          reset.setHours(12, 0, 0, 0)
+          if (hoje.getHours() >= 12) {
+            reset.setDate(reset.getDate() + 1)
+          } 
+
+          if (dataGet.getHours() >= 12 && dataGet.getTime() < reset.getTime()) {
             setTentativasAnteriores(tentativas || []);
             setJogoBloqueado(bloqueado);
             setVencedor(venceu);
@@ -139,7 +160,7 @@ function App() {
     localStorage.setItem(
       "jogoDoDia",
       JSON.stringify({
-        data: new Date().toDateString(),
+        data: new Date(),
         tentativas,
         bloqueado,
         venceu,
@@ -157,9 +178,8 @@ function App() {
       setErro("Palavra não existe");
     }
   }
-
   function verificar() {
-    const pre = palavra;
+    const pre = removerAcentos(palavra);
     const tent = tentativa;
 
     const rsp = ["", "", "", "", ""];
