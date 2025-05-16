@@ -56,14 +56,21 @@ function App() {
   }
 
   function handleKeyDown(e, index) {
-    if (e.key === "Backspace") {
-      if (tentativa[index] === "" && index > 0) {
-        inputRefs.current[index - 1]?.focus();
-      }
-    } else if (e.key === "Enter") {
-      palavraExiste(tentativa);
+  if (e.key === "Backspace") {
+    if (tentativa[index] === "" && index > 0) {
+      inputRefs.current[index - 1]?.focus();
     }
+  } else if (e.key === "Enter") {
+    palavraExiste(tentativa);
+  } else if (e.key === "ArrowLeft" && index > 0) {
+    e.preventDefault();
+    inputRefs.current[index - 1]?.focus();
+  } else if (e.key === "ArrowRight" && index < tentativa.length - 1) {
+    e.preventDefault();
+    inputRefs.current[index + 1]?.focus();
   }
+}
+
 
   useEffect(() => {
     fetch("/arquivo.txt")
@@ -153,9 +160,42 @@ function App() {
   }
 
   function verificar() {
-    const resultado = tentativa.map((letra, i) =>
-      letra === palavra[i] ? "c" : palavra.includes(letra) ? "t" : "e"
-    );
+    const pre = palavra;
+    const tent = tentativa;
+
+    const rsp = ["", "", "", "", ""];
+    const preArr = pre.split("");
+    const tentArr = tent;
+
+    for (let i = 0; i < tentArr.length; i++) {
+      if (tentArr[i] === preArr[i]) {
+        rsp[i] = "c";   
+        preArr[i] = ""; 
+      }
+    }
+
+    const dic = {};
+    for (let letra of preArr) {
+      if (letra !== "") {
+        dic[letra] = (dic[letra] || 0) + 1;
+      }
+    }
+
+    for (let i = 0; i < tentArr.length; i++) {
+      const letra = tentArr[i];
+
+      if (rsp[i] !== "") continue;  
+
+      if (dic[letra] && dic[letra] > 0) {
+        rsp[i] = "t";  
+        dic[letra]--;   
+        if (dic[letra] === 0) delete dic[letra];  
+      } else {
+        rsp[i] = "e";  
+      }
+    }
+    
+    const resultado = rsp; 
 
     const novaTentativasAnteriores = [
       ...tentativasAnteriores,
@@ -234,8 +274,8 @@ function App() {
               (resultado[i] === "c"
                 ? "bg-green-500"
                 : resultado[i] === "t"
-                ? "bg-yellow-400"
-                : "bg-red-500")
+                  ? "bg-yellow-400"
+                  : "bg-red-500")
             }
           />
         ))}
@@ -248,9 +288,8 @@ function App() {
       <div
         onMouseEnter={() => setShowBar(!showBar)}
         onMouseLeave={() => setShowBar(!showBar)}
-        className={`max-w-300 text-white flex flex-col items-center pt-5 fixed top-0 bg-black/50 w-full h-10 rounded-b-3xl overflow-hidden transition-all duration-1000 ${
-          showBar ? "h-50" : "h-10"
-        }`}
+        className={`max-w-300 text-white flex flex-col items-center pt-5 fixed top-0 bg-black/50 w-full h-10 rounded-b-3xl overflow-hidden transition-all duration-1000 ${showBar ? "h-50" : "h-10"
+          }`}
       >
         {showBar && (
           <>
@@ -316,7 +355,7 @@ function App() {
           </>
         )}
       </div>
-        <img src="logo.svg" alt="" className="h-20" />
+      <img src="logo.svg" alt="" className="h-20" />
       {jogoBloqueado && !vencedor && palavra && (
         <p className="text-red-500 font-bold text-center text-lg max-w-md px-2">
           Você perdeu! A palavra do dia era:{" "}
@@ -327,7 +366,7 @@ function App() {
       {erro && <p className="text-red-400 font-semibold">{erro}</p>}
 
       <div className="flex flex-col gap-2">
-        {tentativasAnteriores.length > 0 && 
+        {tentativasAnteriores.length > 0 &&
           tentativasAnteriores.map((tent, i) =>
             renderInput(tent.letras, tent.resultado, `old-${i}-`)
           )}
@@ -381,11 +420,10 @@ function App() {
           onClick={() => palavraExiste(tentativa)}
           disabled={tentativa.some((l) => l === "")}
           className={`px-6 py-2 rounded-xl font-bold mt-4 w-full max-w-md
-          ${
-            tentativa.some((l) => l === "")
+          ${tentativa.some((l) => l === "")
               ? "bg-gray-500 cursor-not-allowed"
               : "bg-cyan-400 text-black"
-          }
+            }
         `}
         >
           Enviar
