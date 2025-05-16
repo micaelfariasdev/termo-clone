@@ -1,18 +1,22 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from "react";
 
 function normalizeString(str) {
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase()
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function App() {
-  const [palavra, setPalavra] = useState()
-  const [tentativa, setTentativa] = useState(['', '', '', '', ''])
-  const [erro, setErro] = useState(false)
-  const [tentativasAnteriores, setTentativasAnteriores] = useState([])
-  const [tentativasFalta, setTentativasFalta] = useState([0, 1, 2, 3, 4])
-  const [listaPalavras, setListaPalavras] = useState([])
-  const [jogoBloqueado, setJogoBloqueado] = useState(false)
-  const [vencedor, setVencedor] = useState(false)
+  const [showBar, setShowBar] = useState(false);
+  const [palavra, setPalavra] = useState();
+  const [tentativa, setTentativa] = useState(["", "", "", "", ""]);
+  const [erro, setErro] = useState(false);
+  const [tentativasAnteriores, setTentativasAnteriores] = useState([]);
+  const [tentativasFalta, setTentativasFalta] = useState([0, 1, 2, 3, 4]);
+  const [listaPalavras, setListaPalavras] = useState([]);
+  const [jogoBloqueado, setJogoBloqueado] = useState(false);
+  const [vencedor, setVencedor] = useState(false);
   const [estatisticas, setEstatisticas] = useState({
     total: 0,
     vitorias: 0,
@@ -21,181 +25,202 @@ function App() {
       2: 0,
       3: 0,
       4: 0,
-      5: 0
+      5: 0,
     },
-    derrotas: 0
-  })
+    derrotas: 0,
+  });
 
-  const inputRefs = useRef([])
+  const inputRefs = useRef([]);
 
   function getPalavraDoDia(lista) {
-    const agora = new Date()
-    const ano = agora.getFullYear()
-    const mes = agora.getMonth() + 1
-    const dia = agora.getDate()
-    const hora = agora.getHours()
-    const diaBase = hora < 12 ? dia : dia + 1
-    const seed = parseInt(`${ano}${String(mes).padStart(2, '0')}${String(diaBase).padStart(2, '0')}`)
-    const index = seed % lista.length
-    return lista[index].trim()
+    const agora = new Date();
+    const ano = agora.getFullYear();
+    const mes = agora.getMonth() + 1;
+    const dia = agora.getDate();
+    const hora = agora.getHours();
+    const diaBase = hora < 12 ? dia : dia + 1;
+    const seed = parseInt(
+      `${ano}${String(mes).padStart(2, "0")}${String(diaBase).padStart(2, "0")}`
+    );
+    const index = seed % lista.length;
+    return lista[index].trim();
   }
 
   function handleChange(index, value) {
-    const nova = [...tentativa]
-    nova[index] = value.toLowerCase().slice(0, 1)
-    setTentativa(nova)
+    const nova = [...tentativa];
+    nova[index] = value.toLowerCase().slice(0, 1);
+    setTentativa(nova);
     if (value.length === 1 && index < tentativa.length - 1) {
-      inputRefs.current[index + 1]?.focus()
+      inputRefs.current[index + 1]?.focus();
     }
   }
 
   function handleKeyDown(e, index) {
-    if (e.key === 'Backspace') {
-      if (tentativa[index] === '' && index > 0) {
-        inputRefs.current[index - 1]?.focus()
+    if (e.key === "Backspace") {
+      if (tentativa[index] === "" && index > 0) {
+        inputRefs.current[index - 1]?.focus();
       }
-    } else if (e.key === 'Enter') {
-      palavraExiste(tentativa)
+    } else if (e.key === "Enter") {
+      palavraExiste(tentativa);
     }
   }
 
   useEffect(() => {
-    fetch('/arquivo.txt')
-      .then(res => res.text())
-      .then(texto => {
-        const nomes = texto.split('\n').map(n => n.trim()).filter(Boolean)
-        const palavraDoDia = getPalavraDoDia(nomes)
+    fetch("/arquivo.txt")
+      .then((res) => res.text())
+      .then((texto) => {
+        const nomes = texto
+          .split("\n")
+          .map((n) => n.trim())
+          .filter(Boolean);
+        const palavraDoDia = getPalavraDoDia(nomes);
 
-        setListaPalavras(nomes)
-        setPalavra(palavraDoDia)
+        setListaPalavras(nomes);
+        setPalavra(palavraDoDia);
 
-        if (localStorage.getItem('estatisticasJogo')) {
-          const statistc = localStorage.getItem('estatisticasJogo')
+        if (localStorage.getItem("estatisticasJogo")) {
+          const statistc = localStorage.getItem("estatisticasJogo");
           if (statistc) {
-            const { total, vitorias, fase, derrotas } = JSON.parse(statistc)
-            console.log(total, vitorias, fase, derrotas)
+            const { total, vitorias, fase, derrotas } = JSON.parse(statistc);
             setEstatisticas({
               total: total,
               vitorias: vitorias,
               fase: fase,
-              derrotas: derrotas
-            })
-            console.log(estatisticas)
+              derrotas: derrotas,
+            });
           }
         }
 
-        const salvo = localStorage.getItem('jogoDoDia')
+        const salvo = localStorage.getItem("jogoDoDia");
         if (salvo) {
-          const { data, tentativas, bloqueado, venceu } = JSON.parse(salvo)
-          const hoje = new Date().toDateString()
+          const { data, tentativas, bloqueado, venceu } = JSON.parse(salvo);
+          const hoje = new Date().toDateString();
           if (data === hoje) {
-            setTentativasAnteriores(tentativas || [])
-            setJogoBloqueado(bloqueado)
-            setVencedor(venceu)
+            setTentativasAnteriores(tentativas || []);
+            setJogoBloqueado(bloqueado);
+            setVencedor(venceu);
 
-            const tentativasFeitas = tentativas ? tentativas.length : 0
-            const maxTentativas = 5
-            const restantes = maxTentativas - tentativasFeitas
-            setTentativasFalta(restantes > 0 ? Array.from({ length: restantes }, (_, i) => i) : [])
+            const tentativasFeitas = tentativas ? tentativas.length : 0;
+            const maxTentativas = 5;
+            const restantes = maxTentativas - tentativasFeitas;
+            setTentativasFalta(
+              restantes > 0
+                ? Array.from({ length: restantes }, (_, i) => i)
+                : []
+            );
 
             if (bloqueado) {
-              setTentativa(['', '', '', '', ''])
+              setTentativa(["", "", "", "", ""]);
             }
           } else {
-            setTentativasAnteriores([])
-            setTentativasFalta([0, 1, 2, 3, 4])
-            setJogoBloqueado(false)
-            setVencedor(false)
-            setTentativa(['', '', '', '', ''])
+            setTentativasAnteriores([]);
+            setTentativasFalta([0, 1, 2, 3, 4]);
+            setJogoBloqueado(false);
+            setVencedor(false);
+            setTentativa(["", "", "", "", ""]);
           }
         } else {
-          setTentativasAnteriores([])
-          setTentativasFalta([0, 1, 2, 3, 4])
-          setJogoBloqueado(false)
-          setVencedor(false)
-          setTentativa(['', '', '', '', ''])
+          setTentativasAnteriores([]);
+          setTentativasFalta([0, 1, 2, 3, 4]);
+          setJogoBloqueado(false);
+          setVencedor(false);
+          setTentativa(["", "", "", "", ""]);
         }
-      })
-  }, [])
+      });
+  }, []);
 
   function salvarEstado(tentativas, bloqueado, venceu) {
-    localStorage.setItem('jogoDoDia', JSON.stringify({
-      data: new Date().toDateString(),
-      tentativas,
-      bloqueado,
-      venceu,
-    }))
+    localStorage.setItem(
+      "jogoDoDia",
+      JSON.stringify({
+        data: new Date().toDateString(),
+        tentativas,
+        bloqueado,
+        venceu,
+      })
+    );
   }
 
   function palavraExiste(palavraArray) {
-    const tentativaNormalized = normalizeString(palavraArray.join(''))
-    const dataNormalized = listaPalavras.map(n => normalizeString(n))
+    const tentativaNormalized = normalizeString(palavraArray.join(""));
+    const dataNormalized = listaPalavras.map((n) => normalizeString(n));
     if (dataNormalized.includes(tentativaNormalized)) {
-      setErro(false)
-      verificar()
+      setErro(false);
+      verificar();
     } else {
-      setErro('Palavra não existe')
+      setErro("Palavra não existe");
     }
   }
 
   function verificar() {
     const resultado = tentativa.map((letra, i) =>
-      letra === palavra[i] ? 'c' :
-        palavra.includes(letra) ? 't' : 'e'
-    )
+      letra === palavra[i] ? "c" : palavra.includes(letra) ? "t" : "e"
+    );
 
     const novaTentativasAnteriores = [
       ...tentativasAnteriores,
-      { letras: [...tentativa], resultado }
-    ]
+      { letras: [...tentativa], resultado },
+    ];
 
-    const tentativaFinal = tentativa.join('')
-    const venceu = tentativaFinal === palavra
+    const tentativaFinal = tentativa.join("");
+    const venceu = tentativaFinal === palavra;
 
     if (venceu) {
-      const tentativasFeitas = 5 - tentativasFalta.length
-      const faseIndex = Math.min(Math.max(tentativasFeitas, 1), 5)
-
       const novaEstatisticas = {
         total: estatisticas.total + 1,
         vitorias: estatisticas.vitorias + 1,
         fase: {
           ...estatisticas.fase,
-          [faseIndex]: estatisticas.fase[faseIndex] + 1
+          [novaTentativasAnteriores.length]:
+            estatisticas.fase[novaTentativasAnteriores.length] + 1,
         },
-        derrotas: estatisticas.derrotas
-      }
-      setEstatisticas(novaEstatisticas)
-      localStorage.setItem('estatisticasJogo', JSON.stringify(novaEstatisticas))
+        derrotas: estatisticas.derrotas,
+      };
+      setEstatisticas(novaEstatisticas);
+      localStorage.setItem(
+        "estatisticasJogo",
+        JSON.stringify(novaEstatisticas)
+      );
 
-      setVencedor(true)
-      setJogoBloqueado(true)
-      setTentativasFalta([])
-      setTentativasAnteriores(novaTentativasAnteriores)
-      salvarEstado(novaTentativasAnteriores, true, true)
-      return
+      setVencedor(true);
+      setJogoBloqueado(true);
+      setTentativasFalta([]);
+      setTentativasAnteriores(novaTentativasAnteriores);
+      salvarEstado(novaTentativasAnteriores, true, true);
+      return;
     }
 
     if (tentativasFalta.length === 1) {
-      setJogoBloqueado(true)
-      setTentativasFalta([])
-      setTentativasAnteriores(novaTentativasAnteriores)
-      salvarEstado(novaTentativasAnteriores, true, false)
-      return
+      const novaEstatisticas = {
+        total: estatisticas.total + 1,
+        vitorias: estatisticas.vitorias,
+        fase: estatisticas.fase,
+        derrotas: estatisticas.derrotas + 1,
+      };
+      setEstatisticas(novaEstatisticas);
+      localStorage.setItem(
+        "estatisticasJogo",
+        JSON.stringify(novaEstatisticas)
+      );
+
+      setJogoBloqueado(true);
+      setTentativasFalta([]);
+      setTentativasAnteriores(novaTentativasAnteriores);
+      salvarEstado(novaTentativasAnteriores, true, false);
+      return;
     }
 
-    const novaTentativasFalta = [...tentativasFalta]
-    novaTentativasFalta.pop()
+    const novaTentativasFalta = [...tentativasFalta];
+    novaTentativasFalta.pop();
 
-    setTentativasFalta(novaTentativasFalta)
-    setTentativasAnteriores(novaTentativasAnteriores)
-    setTentativa(['', '', '', '', ''])
-    inputRefs.current[0]?.focus()
-    salvarEstado(novaTentativasAnteriores, false, false)
+    setTentativasFalta(novaTentativasFalta);
+    setTentativasAnteriores(novaTentativasAnteriores);
+    setTentativa(["", "", "", "", ""]);
+    inputRefs.current[0]?.focus();
+    salvarEstado(novaTentativasAnteriores, false, false);
   }
-  console.log(estatisticas)
 
-  function renderInput(letras, resultado, keyPrefix = '') {
+  function renderInput(letras, resultado, keyPrefix = "") {
     return (
       <div key={keyPrefix} className="flex gap-2">
         {letras.map((letra, i) => (
@@ -205,34 +230,107 @@ function App() {
             value={letra.toUpperCase()}
             readOnly
             className={
-              'w-16 p-2 aspect-square border rounded-xl text-white text-center text-4xl font-bold ' +
-              (resultado[i] === 'c'
-                ? 'bg-green-500'
-                : resultado[i] === 't'
-                  ? 'bg-yellow-400'
-                  : 'bg-red-500')
+              "w-16 p-2 aspect-square border rounded-xl text-white text-center text-4xl font-bold " +
+              (resultado[i] === "c"
+                ? "bg-green-500"
+                : resultado[i] === "t"
+                ? "bg-yellow-400"
+                : "bg-red-500")
             }
           />
         ))}
       </div>
-    )
+    );
   }
 
   return (
-    <div className='h-screen bg-gray-700 flex flex-col gap-2 justify-center items-center px-4'>
-
+    <div className="h-screen bg-gray-700 flex flex-col gap-2 justify-center items-center px-4">
+      <div
+        onMouseEnter={() => setShowBar(!showBar)}
+        onMouseLeave={() => setShowBar(!showBar)}
+        className={`max-w-300 text-white flex flex-col items-center pt-5 fixed top-0 bg-black/50 w-full h-10 rounded-b-3xl overflow-hidden transition-all duration-1000 ${
+          showBar ? "h-50" : "h-10"
+        }`}
+      >
+        {showBar && (
+          <>
+            <p>Partidas Jogadas: {estatisticas.total}</p>
+            <div className="flex gap-4 items-center">
+              <p>Partidas Vencidas: {estatisticas.vitorias}</p>
+              <span className="bg-green-500 w-4 h-4 rounded inline"></span>
+              <p>Partidas Perdidas: {estatisticas.derrotas}</p>
+              <span className="bg-red-500 w-4 h-4 rounded inline"></span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex flex-row items-center gap-1">
+                <div className=" flex gap-0.5">
+                  <span className="bg-green-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-green-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-green-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-green-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-green-500 w-4 h-4 rounded inline"></span>
+                </div>
+                <p className="inline">{estatisticas.fase[1]}</p>
+              </div>
+              <div className="flex flex-row items-center gap-1">
+                <div className=" flex gap-0.5">
+                  <span className="bg-[#a4cc4b] w-4 h-4 rounded inline"></span>
+                  <span className="bg-[#a4cc4b] w-4 h-4 rounded inline"></span>
+                  <span className="bg-[#a4cc4b] w-4 h-4 rounded inline"></span>
+                  <span className="bg-[#a4cc4b] w-4 h-4 rounded inline"></span>
+                  <span className="bg-[#a4cc4b] w-4 h-4 rounded inline"></span>
+                </div>
+                <p className="inline">{estatisticas.fase[2]}</p>
+              </div>
+              <div className="flex flex-row items-center gap-1">
+                <div className=" flex gap-0.5">
+                  <span className="bg-orange-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-orange-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-orange-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-orange-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-orange-500 w-4 h-4 rounded inline"></span>
+                </div>
+                <p className="inline">{estatisticas.fase[3]}</p>
+              </div>
+              <div className="flex flex-row items-center gap-1">
+                <div className=" flex gap-0.5">
+                  <span className="bg-[#e74c3c] w-4 h-4 rounded inline"></span>
+                  <span className="bg-[#e74c3c] w-4 h-4 rounded inline"></span>
+                  <span className="bg-[#e74c3c] w-4 h-4 rounded inline"></span>
+                  <span className="bg-[#e74c3c] w-4 h-4 rounded inline"></span>
+                  <span className="bg-[#e74c3c] w-4 h-4 rounded inline"></span>
+                </div>
+                <p className="inline">{estatisticas.fase[4]}</p>
+              </div>
+              <div className="flex flex-row items-center gap-1">
+                <div className=" flex gap-0.5">
+                  <span className="bg-red-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-red-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-red-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-red-500 w-4 h-4 rounded inline"></span>
+                  <span className="bg-red-500 w-4 h-4 rounded inline"></span>
+                </div>
+                <p className="inline">{estatisticas.fase[5]}</p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+        <img src="logo.svg" alt="" className="h-20" />
       {jogoBloqueado && !vencedor && palavra && (
         <p className="text-red-500 font-bold text-center text-lg max-w-md px-2">
-          Você perdeu! A palavra do dia era: <span className="underline">{palavra.toUpperCase()}</span>
+          Você perdeu! A palavra do dia era:{" "}
+          <span className="underline">{palavra.toUpperCase()}</span>
         </p>
       )}
 
       {erro && <p className="text-red-400 font-semibold">{erro}</p>}
 
       <div className="flex flex-col gap-2">
-        {tentativasAnteriores.length > 0 && tentativasAnteriores.map((tent, i) =>
-          renderInput(tent.letras, tent.resultado, `old-${i}-`)
-        )}
+        {tentativasAnteriores.length > 0 && 
+          tentativasAnteriores.map((tent, i) =>
+            renderInput(tent.letras, tent.resultado, `old-${i}-`)
+          )}
       </div>
 
       {!jogoBloqueado && (
@@ -246,7 +344,7 @@ function App() {
               onKeyDown={(e) => handleKeyDown(e, i)}
               maxLength={1}
               className="w-16 p-2 aspect-square border rounded-xl text-white text-center text-4xl font-bold bg-white/10"
-              ref={el => inputRefs.current[i] = el}
+              ref={(el) => (inputRefs.current[i] = el)}
             />
           ))}
         </div>
@@ -271,26 +369,30 @@ function App() {
       )}
 
       {jogoBloqueado && (
-        <p className="text-red-400 font-bold mt-4 text-center max-w-md px-2">
+        <p className="text-green-400 font-bold mt-4 text-center max-w-md px-2">
           {vencedor
-            ? 'Parabéns! Você acertou a palavra do dia! Volte amanhã para uma nova.'
-            : 'Você esgotou as tentativas de hoje. Volte amanhã!'}
+            ? "Parabéns! Você acertou a palavra do dia! Volte amanhã para uma nova."
+            : "Você esgotou as tentativas de hoje. Volte amanhã!"}
         </p>
       )}
 
       {!jogoBloqueado && (
         <button
           onClick={() => palavraExiste(tentativa)}
-          disabled={tentativa.some(l => l === '')}
+          disabled={tentativa.some((l) => l === "")}
           className={`px-6 py-2 rounded-xl font-bold mt-4 w-full max-w-md
-          ${tentativa.some(l => l === '') ? 'bg-gray-500 cursor-not-allowed' : 'bg-cyan-400 text-black'}
+          ${
+            tentativa.some((l) => l === "")
+              ? "bg-gray-500 cursor-not-allowed"
+              : "bg-cyan-400 text-black"
+          }
         `}
         >
           Enviar
         </button>
       )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
