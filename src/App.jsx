@@ -31,6 +31,7 @@ function App() {
   const [listaPalavras, setListaPalavras] = useState([]);
   const [jogoBloqueado, setJogoBloqueado] = useState(false);
   const [vencedor, setVencedor] = useState(false);
+  const [prox, setProx] = useState();
   const [estatisticas, setEstatisticas] = useState({
     total: 0,
     vitorias: 0,
@@ -45,6 +46,7 @@ function App() {
   });
 
   const inputRefs = useRef([]);
+  
 
   function getPalavraDoDia(lista) {
     const agora = new Date();
@@ -117,12 +119,22 @@ function App() {
           const hoje = new Date();
           const dataGet = new Date(data)
           const reset = new Date()
-          reset.setHours(12, 0, 0, 0)
-          if (hoje.getHours() >= 12) {
+          const PROXJOGO = dataGet
+          if (reset.getHours() >= 12) {    
             reset.setDate(reset.getDate() + 1)
           } 
+          reset.setHours(12, 0, 0, 0)
+          const ULTIMA = new Date(reset)
+          ULTIMA.setDate(ULTIMA.getDate() - 1) 
+          
 
-          if (dataGet.getHours() >= 12 && dataGet.getTime() < reset.getTime()) {
+          setProx(`${reset.toLocaleDateString('pt-br')}, ${reset.toLocaleTimeString('pt-br')}`)
+          console.log('DATA', dataGet)
+          console.log('ULTIMA',ULTIMA)
+          console.log('RESET',reset)
+          console.log(dataGet > ULTIMA && dataGet < reset)
+
+          if (dataGet > ULTIMA && dataGet < reset) {
             setTentativasAnteriores(tentativas || []);
             setJogoBloqueado(bloqueado);
             setVencedor(venceu);
@@ -222,11 +234,11 @@ function App() {
     ];
 
     const tentativaFinal = tentativa.join("");
-    const venceu = tentativaFinal === palavra;
+    const venceu = tentativaFinal === removerAcentos(palavra);
 
     if (venceu) {
       const novaEstatisticas = {
-        total: estatisticas.total + 1,
+        total: estatisticas.total + 1,  
         vitorias: estatisticas.vitorias + 1,
         fase: {
           ...estatisticas.fase,
@@ -429,7 +441,7 @@ function App() {
       {jogoBloqueado && (
         <p className="text-green-400 font-bold mt-4 text-center max-w-md px-2">
           {vencedor
-            ? "Parabéns! Você acertou a palavra do dia! Volte amanhã para uma nova."
+            ? `Parabéns! Você acertou a palavra do dia: ${palavra.toUpperCase()}! Volte amanhã para uma nova.`
             : "Você esgotou as tentativas de hoje. Volte amanhã!"}
         </p>
       )}
